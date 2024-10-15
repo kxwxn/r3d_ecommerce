@@ -1,4 +1,4 @@
-import { CameraControls } from "@react-three/drei";
+import { CameraControls, ContactShadows } from "@react-three/drei";
 import { useFrame, useLoader, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -7,6 +7,7 @@ import { FBXLoader, GLTFLoader, OBJLoader } from "three/examples/jsm/Addons.js";
 const ShowRoom = () => {
   const { raycaster, camera } = useThree();
   const [isFitting, setIsFitting] = useState(false);
+  const cameraControlsRef = useRef<CameraControls>(null!);
 
   const gltf = useLoader(GLTFLoader, "./models/custom.glb");
 
@@ -22,22 +23,45 @@ const ShowRoom = () => {
   });
 
   useEffect(() => {
+    // gltf.scene.children.forEach((shoes) => {
+    //   shoes.children.forEach((mesh) => {
+    //     mesh.castShadow = true;
+    //   });
+    // });
+
     cameraControlsRef.current.setTarget(0, 0, 0, false);
+    cameraControlsRef.current.addEventListener("control", () => {
+      console.log("control");
+      setIsFitting(true);
+    });
+    cameraControlsRef.current.addEventListener("sleep", () => {
+      console.log("sleep");
+      setIsFitting(false);
+    });
   }, []);
 
   let angle = 0;
-  let dis = 2;
+  let dis = 1.5;
   useFrame(() => {
     !isFitting &&
       cameraControlsRef.current.setPosition(
         dis * Math.sin(angle),
         1.5,
-        dis * Math.cos(angle)
+        dis * Math.cos(angle),
+        true
       );
     angle = angle + 0.005;
-  });
 
-  const cameraControlsRef = useRef<CameraControls>(null!);
+    const rightShoe = gltf.scene.children[0];
+    const leftShoe = gltf.scene.children[1];
+
+    rightShoe.rotation.y = THREE.MathUtils.degToRad(10);
+    leftShoe.rotation.y = THREE.MathUtils.degToRad(335);
+    leftShoe.rotation.z = THREE.MathUtils.degToRad(-30);
+    leftShoe.position.x = -0.25;
+    leftShoe.position.y = 0.44;
+    leftShoe.position.z = 0.44;
+  });
 
   const shoesClick = () => {
     const intersects = raycaster.intersectObjects(gltf.scene.children, true);
@@ -51,11 +75,9 @@ const ShowRoom = () => {
       const mat = firstObj.material as THREE.MeshStandardMaterial;
       mat.color = new THREE.Color("red");
 
-      setIsFitting(true);
+      // setIsFitting(true);
 
-      cameraControlsRef.current
-        .fitToBox(firstObj, true)
-        .then(() => setIsFitting(false));
+      cameraControlsRef.current.fitToBox(firstObj, true);
 
       // cameraControlsRef.current.setLookAt(
       //   0,
@@ -72,6 +94,7 @@ const ShowRoom = () => {
   return (
     <>
       <directionalLight position={[3, 3, 3]} />
+      <pointLight position={[0, 1, 0]} intensity={3} />
       <CameraControls
         ref={cameraControlsRef}
         enabled={true}
@@ -81,6 +104,18 @@ const ShowRoom = () => {
         infinityDolly={false}
       />
       <primitive object={gltf.scene} onClick={shoesClick} />
+      <mesh scale={3} position={[0, -0.31, 0]}>
+        <cylinderGeometry args={[0.4, 0.2, 0.2, 30]} />
+        <meshStandardMaterial />
+      </mesh>
+      <ContactShadows
+        position={[0, 0, 0]}
+        scale={5}
+        color={"black"}
+        resolution={512}
+        opacity={0.8}
+        blur={0.4}
+      />
     </>
   );
 };

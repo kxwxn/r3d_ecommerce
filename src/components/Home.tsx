@@ -6,7 +6,7 @@ import { OrbitControls } from "@react-three/drei";
 const Home = () => {
   return (
     <>
-      <Canvas>
+      <Canvas >
         <axesHelper args={[5]} />
         <gridHelper />
         <ShowRoom />
